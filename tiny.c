@@ -19,8 +19,25 @@
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/device.h>
+#include <asm/desc.h>
 
 #include "tiny.h"
+
+// http://www.linuxquestions.org/questions/linux-kernel-70/address-of-gdt-and-all-its-entries-933117/
+static void dump_gdt(void) {
+    struct desc_ptr gdtr;
+    struct desc_struct *gdt;
+    int i;
+
+    native_store_gdt(&gdtr);
+    printk("gdt.size    %d\n", gdtr.size);
+    printk("gdt.address %08x\n", gdtr.address);
+    gdt = (struct desc_struct*)gdtr.address;
+    for (i = 0; i < gdtr.size; ++i) {
+        if (gdt[i].a != 0 && gdt[i].b != 0)
+            printk("gdt[%3d] %08x %08x\n", i, gdt[i].a, gdt[i].b);
+    }
+}
 
 static int device_open(struct inode *inode, struct file *file)
 {
@@ -34,7 +51,7 @@ static long device_ioctl(struct file *filp,
     switch(cmd)
     {
     case IOCTL_CMD:
-        printk("ioctl> %s\n", (char *)args);
+        dump_gdt();
         break;
     }
     return 0;
